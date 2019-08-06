@@ -1,0 +1,310 @@
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//                                                                  //
+// author: David Vaknin                                             //
+// last updated: 08/08/19                                           //
+// email: david@vaknin.io                                           //  
+//                                                                  //
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+node('master') {
+
+    // clean work-space
+    cleanWs deleteDirs: true
+
+    //get tinestamp
+    def now = new Date()
+    env.TIME=now.format("yyyyMMdd-HH:mm:ss.SSS", TimeZone.getTimeZone('UTC'))
+
+    // properties([
+    //     parameters([    
+    //         string(defaultValue: 'master', description: 'Relevant branch to test.', name: 'Branch'),
+    //         string(defaultValue: 'david.vaknin@devalore.com', description: 'write mailRecipients.', name: 'MailRecipients'),
+    //         choice(name: 'Docker_image', choices: "${D_IMAGE}", description: 'Select image name to run on.'),
+    //         choice(name: 'BuildType', choices:"Debug\nRelease", description: "Select build type")
+    //     ])
+    // ])
+    
+    def app
+
+    stage('Clone repository') {
+        /* repository will clone to our workspace */
+        checkout([$class: 'GitSCM', branches: [[name: 'master']],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[credentialsId: 'CI_user', url: 'https://github.com/vcita/helloworld.git']]])
+    }
+
+    stage('Build image') {
+        /* This builds the actual image; synonymous to
+         * docker build on the command line */
+
+        app = docker.build("getintodevops/hellonode")
+    }
+
+    stage('Test image') {
+        /* Ideally, we would run a test framework against our image.
+         * For this example, we're using a Volkswagen-type approach ;-) */
+
+        app.inside {
+            sh 'echo "Tests passed"'
+        }
+    }
+
+    stage('Push image') {
+        /* Finally, we'll push the image with two tags:
+         * First, the incremental build number from Jenkins
+         * Second, the 'latest' tag.
+         * Pushing multiple tags is cheap, as all the layers are reused. */
+        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+            app.push("${env.BUILD_NUMBER}")
+            app.push("latest")
+        }
+    }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+    //git checkout into jenkins master
+    checkout([$class: 'GitSCM', branches: [[name: "*/${params.Branch}"]], 
+    userRemoteConfigs: [[url: 'file:///home/duduvaknin/git/repo_2.git']]])
+
+    //runing in docker node
+    docker.image("${Docker_image}").inside("--entrypoint='' --privileged ") {
+
+        }
+        
+        // this stage build and make tests
+        stage('Build') {
+            try{
+                script {
+                    
+                    // run make generate and build x86
+                    runCommand('cd prog && make')
+                    dir ('prog') { 
+                        archiveArtifacts artifacts: 'server' 
+                    }
+
+                    
+                    try{                                        
+                        //run gtest with xml output    
+                        runCommand('cd googletest-release-1.8.0/googletest/make && make') 
+                        runCommand('cd googletest-release-1.8.0/googletest/make && ./server_unittest --gtest_output="xml:testresults.xml"')     
+                    } catch (e) {
+                        echo "[  ERROR ] Failed in UnitTest "
+                    }
+
+                    dir ('googletest-release-1.8.0/googletest/make') {
+                        archiveArtifacts artifacts: 'testresults.xml'     
+                        archiveArtifacts artifacts: 'server_unittest'
+
+                    }
+                        // run make generate and build aarch64
+                        dir ('armProg') { 
+                            runCommand('make')
+                            archiveArtifacts artifacts: 'server_arm' 
+                        }
+
+                }
+                
+            }catch(Throwable e) {
+                echo "[  ERROR ] STAGE 'Build' ERROR "
+                currentBuild.result = 'FAILURE'
+                emailExt ('FAILURE', '')
+                throw e 
+            }
+        }
+    } 
+    
+    // this stage connect with nexus repository and open section in accordance with git tags
+    stage('Deploy') {
+        try{
+                
+            //Delete assets if bigger then 20 assets (delete by last_updated)
+            def response = httpRequest acceptType: 'APPLICATION_JSON', authentication: 'NexusAdmin', contentType: 'TEXT_PLAIN', httpMode: 'POST', url: 'http://192.168.122.254:8081/service/rest/v1/script/CleanGroupContent/run'
+                println('Response: '+response.content)
+
+            //order binary files by git_tag and commit hash
+            if (GIT_COMMIT != 'WIP') {
+                script {
+                // Construct the build tag
+                if (params.Branch == "master" && params.BuildType == "Release") {
+                        try {
+                            BUILD_TAG = GIT_TAG
+                        } catch (Exception err) {
+                            BUILD_TAG = "0.0.0"
+                        }
+                        SCRIPT_FILE = "NexusScript_release"
+                    }
+                    else {
+                        try {
+                            BUILD_TAG = sh(returnStdout: true, script: 'git describe').trim()
+                        } catch (Exception err) {
+                                def COMMIT_CNT  = sh(returnStdout: true, script: 'git rev-list --all --count').trim()
+                                def COMMIT_HASH = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                                BUILD_TAG = "0.0.0-${COMMIT_CNT}-g${COMMIT_HASH}"
+                        }
+                        SCRIPT_FILE = "NexusScript_build"
+                    }
+                    // unarchive for upload to repo
+                    dir ('/home/duduvaknin/git/repo_2.git/armProg') {
+                        unarchive(mapping: ['server_arm':'.'])
+                    
+                        //upload binary file to Nexus
+                        withCredentials([usernamePassword(credentialsId: 'NexusAdmin', passwordVariable: 'Password', usernameVariable: 'Username')]) {
+                        runCommand(" ./../Nexus/$SCRIPT_FILE '$Username' '$Password' 'server_arm' '$BUILD_TAG' '${env.JOB_NAME}' 'arm' ")
+                        }
+
+                    }
+
+                    // unarchive for upload to repo
+                    dir ('/home/duduvaknin/git/repo_2.git/prog') {
+                        unarchive(mapping: ['server': '.'])
+
+                        //upload binary file to Nexus
+                        withCredentials([usernamePassword(credentialsId: 'NexusAdmin', passwordVariable: 'Password', usernameVariable: 'Username')]) {
+                        runCommand(" ./../Nexus/$SCRIPT_FILE '$Username' '$Password' 'server' '$BUILD_TAG' '${env.JOB_NAME}' 'x86' ")
+                        }
+                
+                    }
+                }
+            }
+        }catch(Throwable e) {
+            echo "[  ERROR ] STAGE 'Deploy' ERROR "
+            currentBuild.result = 'FAILURE'
+            emailExt ('FAILURE', '')
+            throw e 
+        }
+    }
+
+    // this stage generate reports from all tools 
+    stage('Generate reports') {
+        try{
+
+            echo 'Start to generate reports..'
+            //---transfer all report files to "/home/duduvaknin/jenkins_reports"---
+            
+            //--Cppcheck Report--
+            dir ('/home/duduvaknin/jenkins_reports_2/Cppcheck') {
+                unstash 'CppcheckReport'
+            }
+
+            dir ('unit_test') {
+                //--gtest Report--
+                    unarchive(mapping: ['testresults.xml': '.'])
+                    unarchive(mapping: ['server_unittest': '.'])
+                    runCommand('chmod 777 server_unittest')
+                    runCommand('./scripts/genHtmlReportFromGtest.py "/home/duduvaknin/jenkins_reports_2/unit_test/out/gtest_report.html" "testresults.xml"')   
+            }  
+
+            dir ('Valgrind') { 
+                // run valgraind test     
+                    try {
+                        echo "Run under Valgrind test"
+                        runCommand('valgrind --leak-check=full --child-silent-after-fork=yes --xml=yes --xml-file=ValgrindResult.xml --tool=memcheck -v -q ./../unit_test/server_unittest')
+
+                } catch (Exception ex) {
+                        echo "[  ERROR ] Failed in Valgrind test"
+                    } 
+            
+            //convert vagrind xml report to Html
+                runCommand("xsltproc valgrindHtmlOutPut.xsl ValgrindResult.xml > /home/duduvaknin/jenkins_reports_2/Valgrind/valgrindHtml.html")
+                runCommand("xsltproc valgrindXmlOutPut.xsl ValgrindResult.xml > /home/duduvaknin/jenkins_reports_2/Valgrind/valgrindXml.xml")
+            }
+    
+            dir ('/home/duduvaknin/jenkins_reports_2') { 
+                //--console output--
+                runCommand("""curl "http://192.168.122.254:8085/job/Automation_2/${BUILD_NUMBER}/consoleText" --user "jenkins_master:12345" > log.txt""")
+            }
+
+            dir ('prog') {             
+                //--code covrage--
+                runCommand('./RUNCOVRAGE')
+            }
+        } catch(Throwable e) {
+            echo "[  ERROR ] STAGE 'Generate reports' ERROR "
+            currentBuild.result = 'FAILURE'
+            emailExt ('FAILURE', '')
+            throw e 
+        }
+    }
+
+    // this stage send build result to email with zip report and publish summary report portal 
+    stage('Send email') {
+        try{
+            dir ('/home/duduvaknin/jenkins_reports_2') { 
+                publishHTML (target: [
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: false,
+                    keepAll: true,
+                    reportDir: '.',
+                    reportFiles: 'index.html',
+                    reportName: "Summary Reports"
+                ])
+            }
+            
+            //compress summary reports 
+            runCommand('7z a reports.7z /home/duduvaknin/jenkins_reports_2')
+
+            //push report zip to nexus
+            withCredentials([usernamePassword(credentialsId: 'NexusAdmin', passwordVariable: 'Password', usernameVariable: 'Username')]) {
+                runCommand(" ./Nexus/$SCRIPT_FILE '$Username' '$Password' 'reports.7z' '$BUILD_TAG' '${env.JOB_NAME}' 'arm' ")
+                runCommand(" ./Nexus/$SCRIPT_FILE '$Username' '$Password' 'reports.7z' '$BUILD_TAG' '${env.JOB_NAME}' 'x86' ")
+            }
+            
+            script {
+                emailExtRun ()
+            }
+        } catch(Throwable e) {
+            echo "[  ERROR ] STAGE 'Send Email' ERROR "
+            currentBuild.result = 'FAILURE'
+            emailExt ('FAILURE', '')
+            throw e 
+        }
+    }
+}
+ 
+
+//this method run shell command
+def runCommand( command ) {
+    ansiColor('xterm') {
+        if(isUnix()) {
+            sh command
+        } else {
+            bat command
+        }
+    }
+}
+
+//this method send email with build result
+def emailExt (result, zipToEmail) {
+     emailext (body: '''${SCRIPT, template="buildlog.template"}''',
+        mimeType: 'text/html',
+        subject: "[Jenkins] - Build "+ result,
+        attachmentsPattern: zipToEmail,
+        to: params.MailRecipients,
+        replyTo: params.MailRecipients,
+        recipientProviders: [[$class: 'CulpritsRecipientProvider']])
+
+ } 
+
+//this method define the build result and send the result to emailExt function
+def emailExtRun () {
+     if (currentBuild.currentResult == 'SUCCESS') {
+            
+                emailExt ('SUCCESS', 'reports.7z')
+            }
+            else if (currentBuild.currentResult == 'UNSTABLE') { 
+             
+                emailExt ('UNSTABLE', 'reports.7z')
+            }
+            else if (currentBuild.currentResult == 'FAILURE') { 
+                    
+                emailExt ('FAILURE', 'reports.7z')
+            }
+ }
+ 
