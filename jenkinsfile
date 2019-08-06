@@ -25,7 +25,7 @@ node('master') {
         doGenerateSubmoduleConfigurations: false,
         extensions: [],
         submoduleCfg: [],
-        userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/vcita/helloworld.git']]])
+        userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/DuduVaknin/helloworld.git']]])
     }
 
     stage('Build image') {
