@@ -29,7 +29,7 @@ node('master') {
     }
 
     stage('Build image') {
-        /* This builds the actual image; synonymous to
+        /* This builds the actual image; helloworld:latest
          * docker build on the command line */
 
         app = docker.build("helloworld")
