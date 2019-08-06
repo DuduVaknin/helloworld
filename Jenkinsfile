@@ -32,7 +32,7 @@ node('master') {
         /* This builds the actual image; helloworld:latest
          * docker build on the command line */
 
-        app = docker.build("helloworld")
+        app = docker.build("duduvaknin/vcita_helloworld")
     }
 
     // stage('Test image') {
@@ -49,7 +49,7 @@ node('master') {
          * First, the incremental build number from Jenkins
          * Second, the 'latest' tag.
          * Pushing multiple tags is cheap, as all the layers are reused. */
-        docker.withRegistry('https://registry.hub.docker.com/duduvaknin/vcita_helloworld', 'docker-hub-credentials') {
+        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
             app.push("${env.BUILD_NUMBER}")
             app.push("latest")
         }
