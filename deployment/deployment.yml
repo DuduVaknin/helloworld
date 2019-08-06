@@ -17,7 +17,7 @@ spec:
       - name: hello-kubernetes
         image: "duduvaknin/vcita_helloworld:latest"
         ports:
-        - containerPort: 3000
+        - containerPort: 80
         imagePullPolicy: Always
       imagePullSecrets:
       - name: regcred
