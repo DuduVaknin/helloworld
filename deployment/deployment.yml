@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-kubernetes
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: helloworld
+  template:
+    metadata:
+      labels:
+        app: helloworld
+    spec:
+      containers:
+      - name: hello-kubernetes
+        image: "duduvaknin/vcita_helloworld:latest"
+        ports:
+        - containerPort: 3000
+        imagePullPolicy: Always
