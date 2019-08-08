@@ -9,7 +9,6 @@
 //////////////////////////////////////////////////////////////////////
 
 node('master') {
-
     // clean work-space
     cleanWs deleteDirs: true
 
@@ -26,32 +25,27 @@ node('master') {
         extensions: [],
         submoduleCfg: [],
         userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/DuduVaknin/helloworld.git']]])
-    }
+    }// end of stage Clone repository
 
     runCommand('ls')
     stage('Build image') {
-        /* This builds the actual image; helloworld:latest
+        /* This builds the actual image; duduvaknin/vcita_helloworld:latest
          * docker build on the command line */
         app = docker.build("duduvaknin/vcita_helloworld")
-    }
-
-    // stage('Test image') {
-    // // Ideally, we would run a test framework against our image.
-    //     app.inside {
-    //         sh 'echo "Tests passed"'
-    //     }
-    // }
+    }// end of stage Build image
 
     stage('Push image') {
-        /* Finally, we'll push the image with two tags:
+        /* Push the image to Docker hub with two tags:
          * First, the incremental build number from Jenkins
          * Second, the 'latest' tag. */
         docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
             app.push("${env.BUILD_NUMBER}")
             app.push("latest")
         }
-    }
-}
+    }// end of stage Push image
+    // mail will sent with buildlog and status
+    emailExt()
+}// end of node master
 
 //this method run shell command
 def runCommand( command ) {
@@ -74,21 +68,4 @@ def emailExt (result, zipToEmail) {
         replyTo: params.MailRecipients,
         recipientProviders: [[$class: 'CulpritsRecipientProvider']])
 
- } 
-
-//this method define the build result and send the result to emailExt function
-def emailExtRun () {
-     if (currentBuild.currentResult == 'SUCCESS') {
-            
-                emailExt ('SUCCESS', 'reports.7z')
-            }
-            else if (currentBuild.currentResult == 'UNSTABLE') { 
-             
-                emailExt ('UNSTABLE', 'reports.7z')
-            }
-            else if (currentBuild.currentResult == 'FAILURE') { 
-                    
-                emailExt ('FAILURE', 'reports.7z')
-            }
- }
- 
+}

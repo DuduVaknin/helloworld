@@ -18,7 +18,6 @@ node('master') {
     env.TIME=now.format("yyyyMMdd-HH:mm:ss.SSS", TimeZone.getTimeZone('UTC'))
     
     def app
-
     stage('Clone repository') {
         /* repository will clone to our workspace */
         checkout([$class: 'GitSCM', branches: [[name: 'master']],
@@ -26,14 +25,14 @@ node('master') {
         extensions: [],
         submoduleCfg: [],
         userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/DuduVaknin/helloworld.git']]])
-    }
+    }// end of stage Clone repository
 
     runCommand('ls')
     stage('Deploy on K8s'){
-        runCommand "kubectl apply -f deployment/deployment.yml"
-    }
+        runCommand("kubectl apply -f deployment/deployment.yml")
+    }// end of stage Deploy on K8s
 
-}
+}// end of node master
 
 //this method run shell command
 def runCommand( command ) {
@@ -56,21 +55,4 @@ def emailExt (result, zipToEmail) {
         replyTo: params.MailRecipients,
         recipientProviders: [[$class: 'CulpritsRecipientProvider']])
 
- } 
-
-//this method define the build result and send the result to emailExt function
-def emailExtRun () {
-     if (currentBuild.currentResult == 'SUCCESS') {
-            
-                emailExt ('SUCCESS', 'reports.7z')
-            }
-            else if (currentBuild.currentResult == 'UNSTABLE') { 
-             
-                emailExt ('UNSTABLE', 'reports.7z')
-            }
-            else if (currentBuild.currentResult == 'FAILURE') { 
-                    
-                emailExt ('FAILURE', 'reports.7z')
-            }
- }
- 
+} 
