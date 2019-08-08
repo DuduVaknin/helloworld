@@ -59,13 +59,12 @@ def runCommand( command ) {
 }
 
 //this method send email with build result
-def emailExt (result, zipToEmail) {
+def emailExt () {
      emailext (body: '''${SCRIPT, template="buildlog.template"}''',
         mimeType: 'text/html',
-        subject: "[Jenkins] - Build "+ result,
-        attachmentsPattern: zipToEmail,
-        to: params.MailRecipients,
-        replyTo: params.MailRecipients,
+        subject: "[Jenkins] - Build ${currentBuild.currentResult}",
+        to: "${MailRecipients}",
+        replyTo: "${MailRecipients}",
         recipientProviders: [[$class: 'CulpritsRecipientProvider']])
 
-}
+ } 

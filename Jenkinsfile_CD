@@ -32,6 +32,25 @@ node('master') {
         runCommand("kubectl apply -f deployment/deployment.yml")
     }// end of stage Deploy on K8s
 
+
+    ----
+ stage('Deploy on K8s'){    
+    kubernetesDeploy(kubeconfigId: 'kubeconfig-credentials-id',               // REQUIRED
+
+        configs: '<ant-glob-pattern-for-resource-config-paths>', // REQUIRED
+        enableConfigSubstitution: false,
+
+        secretNamespace: '<secret-namespace>',
+        secretName: '<secret-name>',
+        dockerCredentials: [
+            [credentialsId: '<credentials-id-for-docker-hub>'],
+            [credentialsId: '<credentials-id-for-other-private-registry>', url: '<registry-url>'],
+        ]
+    )
+ }
+
+    ----
+
 }// end of node master
 
 //this method run shell command
