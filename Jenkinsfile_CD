@@ -27,29 +27,26 @@ node('master') {
         userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/DuduVaknin/helloworld.git']]])
     }// end of stage Clone repository
 
-    runCommand('ls')
-    stage('Deploy on K8s'){
-        runCommand("kubectl apply -f deployment/deployment.yml")
-    }// end of stage Deploy on K8s
+    // runCommand('ls')
+    // stage('Deploy on K8s'){
+    //     runCommand("kubectl apply -f deployment/deployment.yml")
+    // }// end of stage Deploy on K8s
 
 
-//     ----
-//  stage('Deploy on K8s'){    
-//     kubernetesDeploy(kubeconfigId: 'kubeconfig-credentials-id',               // REQUIRED
+ stage('Deploy on K8s'){    
+    kubernetesDeploy(kubeconfigId: 'jenkins-k8s-token',      // REQUIRED
+        configs: 'deployment/deployment.yml', // REQUIRED
+        enableConfigSubstitution: false,
 
-//         configs: '<ant-glob-pattern-for-resource-config-paths>', // REQUIRED
-//         enableConfigSubstitution: false,
+        secretNamespace: 'deployment'
+        secretName: 'regcred',
+        dockerCredentials: [
+            [credentialsId: 'docker-hub-credentials']
+        
+        ]
+    )
+ }
 
-//         secretNamespace: '<secret-namespace>',
-//         secretName: '<secret-name>',
-//         dockerCredentials: [
-//             [credentialsId: '<credentials-id-for-docker-hub>'],
-//             [credentialsId: '<credentials-id-for-other-private-registry>', url: '<registry-url>'],
-//         ]
-//     )
-//  }
-
-//     ----
 
 }// end of node master
 
