@@ -33,23 +33,23 @@ node('master') {
     }// end of stage Deploy on K8s
 
 
-    ----
- stage('Deploy on K8s'){    
-    kubernetesDeploy(kubeconfigId: 'kubeconfig-credentials-id',               // REQUIRED
+//     ----
+//  stage('Deploy on K8s'){    
+//     kubernetesDeploy(kubeconfigId: 'kubeconfig-credentials-id',               // REQUIRED
 
-        configs: '<ant-glob-pattern-for-resource-config-paths>', // REQUIRED
-        enableConfigSubstitution: false,
+//         configs: '<ant-glob-pattern-for-resource-config-paths>', // REQUIRED
+//         enableConfigSubstitution: false,
 
-        secretNamespace: '<secret-namespace>',
-        secretName: '<secret-name>',
-        dockerCredentials: [
-            [credentialsId: '<credentials-id-for-docker-hub>'],
-            [credentialsId: '<credentials-id-for-other-private-registry>', url: '<registry-url>'],
-        ]
-    )
- }
+//         secretNamespace: '<secret-namespace>',
+//         secretName: '<secret-name>',
+//         dockerCredentials: [
+//             [credentialsId: '<credentials-id-for-docker-hub>'],
+//             [credentialsId: '<credentials-id-for-other-private-registry>', url: '<registry-url>'],
+//         ]
+//     )
+//  }
 
-    ----
+//     ----
 
 }// end of node master
 
