@@ -38,7 +38,7 @@ node('master') {
         configs: 'deployment/deployment.yml', // REQUIRED
         enableConfigSubstitution: false,
 
-        secretNamespace: 'deployment'
+        secretNamespace: 'deployment',
         secretName: 'regcred',
         dockerCredentials: [
             [credentialsId: 'docker-hub-credentials']
