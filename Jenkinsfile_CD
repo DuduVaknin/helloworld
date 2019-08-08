@@ -27,25 +27,25 @@ node('master') {
         userRemoteConfigs: [[credentialsId: 'duduvaknin', url: 'https://github.com/DuduVaknin/helloworld.git']]])
     }// end of stage Clone repository
 
-    // runCommand('ls')
-    // stage('Deploy on K8s'){
-    //     runCommand("kubectl apply -f deployment/deployment.yml")
-    // }// end of stage Deploy on K8s
+    runCommand('ls')
+    stage('Deploy on K8s'){
+        runCommand("kubectl apply -f deployment/deployment.yml")
+    }// end of stage Deploy on K8s
 
+    //  secoend way for deploy
+    //  stage('Deploy on K8s'){    
+    //     kubernetesDeploy(kubeconfigId: 'kubeconfig-token',      // REQUIRED
+    //         configs: 'deployment/deployment.yml', // REQUIRED
+    //         enableConfigSubstitution: false,
 
- stage('Deploy on K8s'){    
-    kubernetesDeploy(kubeconfigId: 'kubeconfig-token',      // REQUIRED
-        configs: 'deployment/deployment.yml', // REQUIRED
-        enableConfigSubstitution: false,
-
-        secretNamespace: 'deployment',
-        secretName: 'regcred',
-        dockerCredentials: [
-            [credentialsId: 'docker-hub-credentials']
-        
-        ]
-    )
- }
+    //         secretNamespace: 'deployment',
+    //         secretName: 'regcred',
+    //         dockerCredentials: [
+    //             [credentialsId: 'docker-hub-credentials']
+            
+    //         ]
+    //     )
+    //   }      
 
 
 }// end of node master
