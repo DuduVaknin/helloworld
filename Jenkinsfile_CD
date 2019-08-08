@@ -34,7 +34,7 @@ node('master') {
 
 
  stage('Deploy on K8s'){    
-    kubernetesDeploy(kubeconfigId: 'jenkins-k8s-token',      // REQUIRED
+    kubernetesDeploy(kubeconfigId: 'kubeconfig-token',      // REQUIRED
         configs: 'deployment/deployment.yml', // REQUIRED
         enableConfigSubstitution: false,
 
