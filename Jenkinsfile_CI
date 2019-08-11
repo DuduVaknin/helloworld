@@ -43,6 +43,7 @@ node('master') {
             app.push("latest")
         }
     }// end of stage Push image
+    
     // mail will sent with buildlog and status
     emailExt()
 }// end of node master
