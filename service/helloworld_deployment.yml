@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-kubernetes
+  name: helloworld
   namespace: helloworld
 spec:
   replicas: 3
@@ -17,7 +17,12 @@ spec:
       - name: hello-kubernetes
         image: "duduvaknin/vcita_helloworld:latest"
         ports:
-        - containerPort: 80
-        imagePullPolicy: Always
+          - containerPort: 8080 
+        readinessProbe:
+          httpGet:
+            path: /health/check
+            port: 8080
+          periodSeconds: 5
+        imagePullPolicy: Never
       imagePullSecrets:
       - name: regcred
