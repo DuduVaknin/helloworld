@@ -6,7 +6,7 @@ spec:
   selector:
     app: helloworld
   ports:
-  - protocol: TCP
+  - protocol: HTTP
     port: 80
     targetPort: 8010
   type: NodePort
