@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: helloworld
+  namespace: helloworld
+  labels:
+    app: helloworld
+spec:
+  containers:
+    - name: hello-kubernetes
+      image: "duduvaknin/vcita_helloworld:latest"

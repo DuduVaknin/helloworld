@@ -29,7 +29,7 @@ node('master') {
 
     runCommand('ls')
     stage('Deploy on K8s'){
-        runCommand("kubectl apply -f deployment/deployment.yml")
+        runCommand("kubectl apply -f service/helloworld_deployment.yml")
     }// end of stage Deploy on K8s
 
     //  secoend way for deploy
