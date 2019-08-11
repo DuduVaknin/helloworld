@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: : hello-kubernetes-service
+  name: hello-kubernetes-service
 spec:
   selector:
     app: helloworld
   ports:
-  - protocol: HTTP
+  - protocol: TCP
     port: 80
     targetPort: 8010
   type: NodePort
